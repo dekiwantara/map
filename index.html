@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Visualisasi Perpindahan Data IP ke IP</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        #map {
+            height: 500px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script>
+        mapboxgl.accessToken = 'sk.eyJ1IjoiYWRpdGRld2FuIiwiYSI6ImNsaWJxZ2gwMjBiM3czZ21vbWhoaGNhMDEifQ.2liv6Fx4HYbdfbmu0HRrjg';
+        var map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v11',
+            center: [0, 0],
+            zoom: 1
+        });
+
+        fetch('/process-ip')
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(item => {
+                    var from = {
+                        type: 'Feature',
+                        properties: {
+                            description: 'Pengirim: ' + item.pengirim
+                        },
+                        geometry: {
+                            type: 'Point',
+                            coordinates: [item.pengirimLongitude, item.pengirimLatitude]
+                        }
+                    };
+
+                    var to = {
+                        type: 'Feature',
+                        properties: {
+                            description: 'Penerima: ' + item.penerima
+                        },
+                        geometry: {
+                            type: 'Point',
+                            coordinates: [item.penerimaLongitude, item.penerimaLatitude]
+                        }
+                    };
+
+                    var line = {
+                        type: 'Feature',
+                        geometry: {
+                            type: 'LineString',
+                            coordinates: [
+                                [item.pengirimLongitude, item.pengirimLatitude],
+                                [item.penerimaLongitude, item.penerimaLatitude]
+                            ]
+                        }
+                    };
+
+                    map.on('load', function () {
+                        map.addSource('from', { type: 'geojson', data: from });
+                        map.addSource('to', { type: 'geojson', data: to });
+                        map.addSource('line', { type: 'geojson', data: line });
+
+                        map.addLayer({
+                            id: 'from-marker',
+                            type: 'circle',
+                            source: 'from',
+                            paint: {
+                                'circle-color': '#FF0000',
+                                'circle-radius': 5
+                            }
+                        });
+
+                        map.addLayer({
+                            id: 'to-marker',
+                            type: 'circle',
+                            source: 'to',
+                            paint: {
+                                'circle-color': '#00FF00',
+                                'circle-radius': 5
+                            }
+                        });
+
+                        map.addLayer({
+                            id: 'line',
+                            type: 'line',
+                            source: 'line',
+                            paint: {
+                                'line-color': '#0000FF',
+                                'line-width': 2
+                            }
+                        });
+
+                        var popupFrom = new mapboxgl.Popup().setText(from.properties.description);
+                        var popupTo = new mapboxgl.Popup().setText(to.properties.description);
+
+                        map.on('mouseenter', 'from-marker', function () {
+                            map.getCanvas().style.cursor = 'pointer';
+                            popupFrom.addTo(map);
+                        });
+
+                        map.on('mouseleave', 'from-marker', function () {
+                            map.getCanvas().style.cursor = '';
+                            popupFrom.remove();
+                        });
+
+                        map.on('mouseenter', 'to-marker', function () {
+                            map.getCanvas().style.cursor = 'pointer';
+                            popupTo.addTo(map);
+                        });
+
+                        map.on('mouseleave', 'to-marker', function () {
+                            map.getCanvas().style.cursor = '';
+                            popupTo.remove();
+                        });
+                    });
+                });
+            });
+    </script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.4.0/mapbox-gl.js"></script>
+</body>
+</html>
